@@ -1313,7 +1313,7 @@ A matching primary-side per-secondmate pin for a remote route refuses before rem
 To launch one local omp secondmate under its own isolated omp profile, create `config/secondmate-accounts/<id>/omp-profile` in the primary home.
 Use the secondmate's registered identifier for `<id>`.
 The file holds one omp profile name on a single line, with an optional final newline.
-The name must match omp's own profile rule, `^[a-z0-9][a-z0-9._-]{0,63}$`, and must not end in `.`.
+The name must match omp's own profile rule, `^[a-z0-9][a-z0-9._-]{0,63}$`, must not end in `.`, and must not be a Windows reserved device name (`con`, `prn`, `aux`, `nul`, `com0`-`com9`, `lpt0`-`lpt9`), alone or with an extension such as `nul.x`.
 
 When the file is present, that secondmate's omp agent launches as `omp --profile <name>`, so it uses that profile's own logins, sessions, settings, and caches rather than the primary's default omp profile.
 The model catalog check before launch reads the same profile.

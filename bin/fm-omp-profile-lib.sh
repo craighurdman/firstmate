@@ -17,7 +17,8 @@
 # The pin is opt-in: an absent file is no pin, and the launch keeps today's
 # ambient behavior byte for byte. A present file must hold one profile name
 # matching omp's own rule (omp 18.4.3: ^[a-z0-9][a-z0-9._-]{0,63}$, never
-# ending in "."), with an optional final newline; anything else refuses
+# ending in ".", never a Windows reserved device name with or without an
+# extension), with an optional final newline; anything else refuses
 # before any endpoint, worktree, or record exists, and nothing falls back to
 # the ambient profile once the file exists. A raw omp launch command runs
 # verbatim and cannot receive the flag, so a pinned mate refuses it.
@@ -41,6 +42,7 @@ fm_omp_profile_read() {
     $body =~ /\A([a-z0-9][a-z0-9._-]{0,63})\n?\z/ or exit 6;
     my $name = $1;
     $name =~ /\.\z/ and exit 6;
+    $name =~ /\A(?:con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\.|\z)/ and exit 6;
     print $name;
   ' -- "$1"
 }
@@ -67,7 +69,7 @@ fm_omp_profile_select() {
     return 1
     ;;
   *)
-    echo "error: $cfg must hold one omp profile name on a single line, matching ^[a-z0-9][a-z0-9._-]{0,63}\$ and not ending in '.', with no other lines or control characters" >&2
+    echo "error: $cfg must hold one omp profile name on a single line, matching ^[a-z0-9][a-z0-9._-]{0,63}\$, not ending in '.', and not a Windows reserved device name (con, prn, aux, nul, com0-9, lpt0-9, alone or with an extension), with no other lines or control characters" >&2
     return 1
     ;;
   esac

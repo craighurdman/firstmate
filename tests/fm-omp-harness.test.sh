@@ -366,19 +366,23 @@ test_secondmate_omp_profile_absent_or_foreign_adds_nothing() {
 }
 
 test_secondmate_omp_profile_malformed_refuses() {
-  # A malformed pin refuses before any record or launch, naming the file.
-  local world out status
-  world=$(make_omp_secondmate_world secondmate-omp-profile-bad)
-  mkdir -p "$world/home/config/secondmate-accounts/sm"
-  printf 'Speak4; rm -rf /\n' > "$world/home/config/secondmate-accounts/sm/omp-profile"
-  out=$(run_omp_secondmate_spawn "$world" omp --secondmate)
-  status=$?
-  expect_code 1 "$status" "a malformed omp profile pin must refuse the spawn: $out"
-  assert_contains "$out" "$world/home/config/secondmate-accounts/sm/omp-profile must hold one omp profile name" \
-    "the refusal must name the malformed pin file: $out"
-  assert_absent "$world/home/state/sm.meta" "a refused spawn must publish no sm.meta"
-  [ ! -s "$world/launch.log" ] || fail "a refused spawn must record no launch: $(cat "$world/launch.log")"
-  pass "fm-spawn: a malformed omp profile pin refuses before any record or launch"
+  # A malformed pin, including a name omp rejects as a Windows reserved device
+  # name, refuses before any record or launch, naming the file.
+  local world out status pin n=0
+  for pin in 'Speak4; rm -rf /' aux nul.x com7; do
+    n=$((n + 1))
+    world=$(make_omp_secondmate_world "secondmate-omp-profile-bad-$n")
+    mkdir -p "$world/home/config/secondmate-accounts/sm"
+    printf '%s\n' "$pin" > "$world/home/config/secondmate-accounts/sm/omp-profile"
+    out=$(run_omp_secondmate_spawn "$world" omp --secondmate)
+    status=$?
+    expect_code 1 "$status" "a malformed omp profile pin ($pin) must refuse the spawn: $out"
+    assert_contains "$out" "$world/home/config/secondmate-accounts/sm/omp-profile must hold one omp profile name" \
+      "the refusal must name the malformed pin file ($pin): $out"
+    assert_absent "$world/home/state/sm.meta" "a refused spawn ($pin) must publish no sm.meta"
+    [ ! -s "$world/launch.log" ] || fail "a refused spawn ($pin) must record no launch: $(cat "$world/launch.log")"
+  done
+  pass "fm-spawn: a malformed or reserved omp profile pin refuses before any record or launch"
 }
 
 # --- 3. Busy state -------------------------------------------------------------
