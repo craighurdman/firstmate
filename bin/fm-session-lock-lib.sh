@@ -25,8 +25,14 @@ _FM_SESSION_LOCK_LIB_DIR=${BASH_SOURCE[0]%/*}
 unset _FM_SESSION_LOCK_LIB_DIR
 
 # Known harness command names; extend when a new adapter is verified. omp is
-# anchored exactly like pi: its process name is the bare word `omp` (verified,
-# omp 18.1.11), and a substring match would claim ompd or comp.
+# anchored exactly like pi: its process name is the bare word `omp` when
+# installed as a compiled binary or symlink (verified, omp 18.1.11), and a
+# substring match would claim ompd or comp. A global bun-package install
+# instead ships omp as a `#!/usr/bin/env bun` shebang script, so the kernel
+# reports comm=bun there; that packaging is matched separately below by its
+# script path, never by this anchored regex (verified, omp 18.4.3 installed
+# via `bun install -g`: `ps -o comm=` reports `bun`, and `ps -o args=`
+# reports `bun <install-path>/omp ...`).
 FM_HARNESS_RE='claude|codex|opencode|grok|kimi|^pi$|^pi-signed$|^omp$'
 
 # The same harnesses as exact executable names. Keep in sync with
@@ -116,9 +122,19 @@ fm_harness_process_matches() {  # <comm> <args>
     case "$name" in claude) FM_HARNESS_IS_CLAUDE=1 ;; esac
     return 0
   fi
-  # Bare interpreter (e.g. node): match the harness name in its script path.
+  # Bare interpreter (e.g. node, or omp's bun-shebang package install): match
+  # the harness name in its script path. omp (like pi) is matched here by a
+  # path-component glob rather than the broad grep below, because
+  # FM_HARNESS_RE anchors omp and pi to the WHOLE line (^omp$/^pi$), which a
+  # multi-word args string such as "bun <path>/omp --resume=..." can never
+  # equal.
   case "$comm" in
-    *node*|*python*)
+    *node*|*python*|*bun*)
+      case "$args" in
+        */omp|*/omp\ *)
+          return 0
+          ;;
+      esac
       if printf '%s' "$args" | grep -qE "$FM_HARNESS_RE"; then
         case "$args" in *claude*) FM_HARNESS_IS_CLAUDE=1 ;; esac
         return 0

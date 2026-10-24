@@ -62,32 +62,114 @@ make_named_shells() {  # <dir> -> echoes <bindir>
   printf '%s' "$dir"
 }
 
+# Run <bin> -c '"$1"; :' _ <target> detached from this suite's own process
+# tree. harness_ancestry climbs through any number of non-matching ancestors
+# looking for the nearest harness match, so a decoy name running as an
+# ordinary child of this suite would have its "no match" verdict overridden
+# the moment the walk reaches this suite's OWN real enclosing harness a few
+# hops further up - exactly the omp session this file's own fix now teaches
+# the walk to recognize when it is bun-shebang packaged. Backgrounding the
+# real invocation and letting the launcher exit immediately reparents it to
+# init before the walk inside it ever runs, so it terminates inside the
+# fixture exactly like the end-to-end fixtures in
+# tests/fm-session-lock-ancestry.test.sh.
+run_detached() {  # <bin> <target> <outfile>
+  local bin=$1 target=$2 outfile=$3 runner i=0
+  runner="$TMP_ROOT/run-detached-$$-$RANDOM.sh"
+  cat > "$runner" <<EOF
+#!/usr/bin/env bash
+"$bin" -c '"\$1"; :' _ "$target" > "$outfile" 2>&1
+: > "$outfile.done"
+EOF
+  chmod +x "$runner"
+  env -u PI_CODING_AGENT -u CURSOR_AGENT -u CURSOR_INVOKED_AS \
+    bash -c '"$0" &' "$runner"
+  while [ "$i" -lt 200 ] && [ ! -e "$outfile.done" ]; do
+    sleep 0.05
+    i=$((i + 1))
+  done
+  [ -e "$outfile.done" ] || fail "detached decoy process for $bin never completed"
+  rm -f "$outfile.done"
+}
+
+# Like run_detached, but <bin> runs <script-path> as a file argument rather
+# than via -c, so its own ps args= line looks exactly like a real bun-shebang
+# package install's: "<interpreter> <script-path> <harness>".
+run_detached_script() {  # <bin> <script-path> <target> <outfile>
+  local bin=$1 script=$2 target=$3 outfile=$4 runner i=0
+  runner="$TMP_ROOT/run-detached-script-$$-$RANDOM.sh"
+  cat > "$runner" <<EOF
+#!/usr/bin/env bash
+"$bin" "$script" "$target" > "$outfile" 2>&1
+: > "$outfile.done"
+EOF
+  chmod +x "$runner"
+  env -u PI_CODING_AGENT -u CURSOR_AGENT -u CURSOR_INVOKED_AS \
+    bash -c '"$0" &' "$runner"
+  while [ "$i" -lt 200 ] && [ ! -e "$outfile.done" ]; do
+    sleep 0.05
+    i=$((i + 1))
+  done
+  [ -e "$outfile.done" ] || fail "detached process for $bin $script never completed"
+  rm -f "$outfile.done"
+}
+
 # --- 1. Detection --------------------------------------------------------------
 
 test_detection_anchored_name_and_marker_precedence() {
   local bin out
   bin=$(make_named_shells "$TMP_ROOT/named")
-  # shellcheck disable=SC2016 # the quoted body expands inside the named shell
-  out=$(env -u CLAUDECODE -u FM_OMP_HARNESS -u PI_CODING_AGENT -u CURSOR_AGENT -u CURSOR_INVOKED_AS \
-    "$bin/omp" -c '"$1"; :' _ "$HARNESS")
+  (unset CLAUDECODE FM_OMP_HARNESS; run_detached "$bin/omp" "$HARNESS" "$TMP_ROOT/positive.out")
+  out=$(cat "$TMP_ROOT/positive.out")
   [ "$out" = omp ] || fail "a process named omp must detect as omp, got '$out'"
   for decoy in ompd comp; do
-    # shellcheck disable=SC2016 # the quoted body expands inside the named shell
-    out=$(env -u CLAUDECODE -u FM_OMP_HARNESS -u PI_CODING_AGENT -u CURSOR_AGENT -u CURSOR_INVOKED_AS \
-      "$bin/$decoy" -c '"$1"; :' _ "$HARNESS")
+    (unset CLAUDECODE FM_OMP_HARNESS; run_detached "$bin/$decoy" "$HARNESS" "$TMP_ROOT/decoy-$decoy.out")
+    out=$(cat "$TMP_ROOT/decoy-$decoy.out")
     [ "$out" != omp ] || fail "'$decoy' merely contains omp and must not detect as omp"
   done
   # The marker beats an inherited CLAUDECODE only under a real omp ancestor.
-  # shellcheck disable=SC2016 # the quoted body expands inside the named shell
-  out=$(env -u PI_CODING_AGENT -u CURSOR_AGENT -u CURSOR_INVOKED_AS CLAUDECODE=1 FM_OMP_HARNESS=omp \
-    "$bin/omp" -c '"$1"; :' _ "$HARNESS")
+  (export CLAUDECODE=1 FM_OMP_HARNESS=omp
+    run_detached "$bin/omp" "$HARNESS" "$TMP_ROOT/marker-under-omp.out")
+  out=$(cat "$TMP_ROOT/marker-under-omp.out")
   [ "$out" = omp ] || fail "FM_OMP_HARNESS under an omp ancestor must outrank an inherited CLAUDECODE, got '$out'"
   # ...and is inert when it leaks into a worker with no omp ancestor.
-  # shellcheck disable=SC2016 # the quoted body expands inside the named shell
-  out=$(env -u PI_CODING_AGENT -u CURSOR_AGENT -u CURSOR_INVOKED_AS CLAUDECODE=1 FM_OMP_HARNESS=omp \
-    bash -c '"$1"; :' _ "$HARNESS")
+  (export CLAUDECODE=1 FM_OMP_HARNESS=omp
+    run_detached bash "$HARNESS" "$TMP_ROOT/marker-no-omp.out")
+  out=$(cat "$TMP_ROOT/marker-no-omp.out")
   [ "$out" = claude ] || fail "a leaked FM_OMP_HARNESS without an omp ancestor must not relabel a claude worker, got '$out'"
   pass "fm-harness: omp detects by its anchored name; the marker is a precedence override that needs real omp ancestry"
+}
+
+# A global bun-package install (`bun install -g`) ships omp as a
+# `#!/usr/bin/env bun` shebang script rather than a compiled binary or
+# symlink, so the kernel's comm for the running process is the interpreter
+# `bun`, never `omp` (verified, omp 18.4.3). The symlinked-shell trick above
+# cannot reproduce this: it needs a real two-token argv, interpreter then
+# script path, with the script path ending in /omp.
+test_bun_shebang_package_install_is_identified_by_its_script_path() {
+  local bin scriptdir out decoy
+  mkdir -p "$TMP_ROOT/bun-named"
+  ln -sf /bin/bash "$TMP_ROOT/bun-named/bun"
+  bin="$TMP_ROOT/bun-named"
+  scriptdir="$TMP_ROOT/bun-scripts"
+  mkdir -p "$scriptdir"
+  for decoy in omp ompd comp; do
+    printf '#!/usr/bin/env bash\n"$1"; :\n' > "$scriptdir/$decoy"
+    chmod +x "$scriptdir/$decoy"
+  done
+
+  (unset CLAUDECODE FM_OMP_HARNESS
+    run_detached_script "$bin/bun" "$scriptdir/omp" "$HARNESS" "$TMP_ROOT/bun-positive.out")
+  out=$(cat "$TMP_ROOT/bun-positive.out")
+  [ "$out" = omp ] || fail "a bun-shebang package install (comm=bun, script path .../omp) must detect as omp, got '$out'"
+
+  for decoy in ompd comp; do
+    (unset CLAUDECODE FM_OMP_HARNESS
+      run_detached_script "$bin/bun" "$scriptdir/$decoy" "$HARNESS" "$TMP_ROOT/bun-decoy-$decoy.out")
+    out=$(cat "$TMP_ROOT/bun-decoy-$decoy.out")
+    [ "$out" != omp ] || fail "a bun script path ending in /$decoy merely contains omp and must not detect as omp"
+  done
+  pass "fm-harness: a bun-shebang package install of omp is identified by its script path; decoy script names stay out"
 }
 
 test_lock_identity_and_liveness_classification() {
@@ -964,6 +1046,7 @@ EOF
 }
 
 test_detection_anchored_name_and_marker_precedence
+test_bun_shebang_package_install_is_identified_by_its_script_path
 test_lock_identity_and_liveness_classification
 test_spawn_launch_line_and_worker_wiring
 test_spawn_model_validation_scoped_to_listed_providers

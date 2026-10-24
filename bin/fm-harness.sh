@@ -158,14 +158,22 @@ harness_marker() {
   return 0
 }
 
-# True when an exact `omp` process sits within eight parents of this one. The
-# same anchored match as the ancestry walk below, kept separate so the marker
-# precedence above can demand real process evidence before trusting FM_OMP_HARNESS.
+# True when an exact `omp` process, or a bun-shebang package install of omp
+# (comm=bun running a script path ending in /omp), sits within eight parents
+# of this one. The same anchored match as the ancestry walk below, kept
+# separate so the marker precedence above can demand real process evidence
+# before trusting FM_OMP_HARNESS.
 ancestry_names_omp() {
-  local pid=$$ comm
+  local pid=$$ comm args
   for _ in 1 2 3 4 5 6 7 8; do
     comm=$(ps -o comm= -p "$pid" 2>/dev/null) || return 1
-    [ "$(basename -- "$comm")" = omp ] && return 0
+    case "$(basename -- "$comm")" in
+      omp) return 0 ;;
+      bun)
+        args=$(ps -o args= -p "$pid" 2>/dev/null)
+        case "$args" in */omp|*/omp\ *) return 0 ;; esac
+        ;;
+    esac
     pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
     [ -n "$pid" ] && [ "$pid" -gt 1 ] || return 1
   done
@@ -223,11 +231,16 @@ harness_process_verdict() {  # <pid>
     # is why detect_own keeps a marker that agrees on the family.
     pi-signed) echo "comm pi"; return ;;
     pi) echo "comm pi"; return ;;
-    # omp is a Bun-compiled single binary whose process name is exactly `omp`
-    # (verified, omp 18.1.11: `ps -o comm=` reports omp from both its `!`
-    # bash path and the model's bash tool). Anchored, never *omp*, so ompd,
+    # omp ships two ways. A compiled binary or symlink install's process name
+    # is exactly `omp` (verified, omp 18.1.11: `ps -o comm=` reports omp from
+    # both its `!` bash path and the model's bash tool). A global bun-package
+    # install (e.g. `bun install -g`) instead ships omp as a
+    # `#!/usr/bin/env bun` shebang script, so the kernel reports comm=bun
+    # there (verified, omp 18.4.3); that case is caught by the bun arm of the
+    # node*|python* fallback below, matched on its script path rather than
+    # this exact comm name. Both arms are anchored, never *omp*, so ompd,
     # comp, and similar unrelated commands are not misread as this harness.
-    # It sits above the node*|python* interpreter fallback deliberately: the
+    # The comm=omp arm sits above the interpreter fallback deliberately: the
     # optional claude-bridge extension runs a nested executable literally
     # named `claude` with its own node child, and that fallback's *claude*
     # args glob would otherwise claim it if that subtree were ever walked.
@@ -266,8 +279,10 @@ harness_process_verdict() {  # <pid>
     # 1.74.1: comm=command-code and the rewritten argv is the same word).
     # Anchored, so an unrelated command containing that fragment never matches.
     command-code) echo "comm commandcode"; return ;;
-    node*|python*)
-      # Bare interpreter: match the harness name in its script path.
+    node*|python*|bun*)
+      # Bare interpreter: match the harness name in its script path. omp is a
+      # path-ending glob rather than an unanchored *omp* substring so ompd and
+      # comp paths are never misread as this harness.
       args=$(ps -o args= -p "$pid" 2>/dev/null)
       if fm_gemini_args_are_gemini "$args"; then
         echo "args gemini"
@@ -279,6 +294,7 @@ harness_process_verdict() {  # <pid>
         *opencode*) echo "args opencode"; return ;;
         *grok*) echo "args grok"; return ;;
         *" pi "*|*/pi) echo "args pi"; return ;;
+        */omp|*/omp\ *) echo "args omp"; return ;;
       esac ;;
   esac
 }

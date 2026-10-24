@@ -232,6 +232,73 @@ SH
   pass "session-lock: ownership stops at the first non-harness gap above the contiguous run"
 }
 
+# A global bun-package install (`bun install -g`) ships omp as a
+# `#!/usr/bin/env bun` shebang script rather than a compiled binary or
+# symlink, so the kernel's comm is `bun`, never `omp` (verified, omp 18.4.3).
+# The session-lock identity must still resolve it from its script path, and
+# must never mistake an unrelated bun process for it.
+test_bun_shebang_omp_is_identified_by_its_script_path() {
+  local dir fakebin got
+  dir="$TMP_ROOT/bun-omp"
+  fakebin=$(fm_fakebin "$dir")
+  mkdir -p "$dir/state"
+  cat > "$fakebin/ps" <<'SH'
+#!/usr/bin/env bash
+set -u
+field= pid=
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -o) field=$2; shift 2 ;;
+    -p) pid=$2; shift 2 ;;
+    *) shift ;;
+  esac
+done
+case "$pid:$field" in
+  600:comm=) printf '%s\n' bun ;;
+  600:args=) printf '%s\n' 'bun /Users/u/.bun/bin/omp --resume=/x.jsonl' ;;
+  600:ppid=) printf '%s\n' 1 ;;
+  *:comm=) printf '%s\n' bash ;;
+  *:args=) printf '%s\n' 'bash tests/run.sh' ;;
+  *:ppid=) printf '%s\n' 600 ;;
+esac
+SH
+  chmod +x "$fakebin/ps"
+  printf '600\n' > "$dir/state/.lock"
+
+  got=$(lib_eval "$fakebin" 'fm_harness_ancestry_pid') \
+    || fail "a bun-shebang omp install (comm=bun, script path .../omp) was not found in the ancestry"
+  [ "$got" = 600 ] || fail "ancestry resolved '$got', expected the bun-wrapped omp session pid 600"
+  lib_eval "$fakebin" "fm_session_lock_owned_by_self '$dir/state'" \
+    || fail "a bun-shebang omp session did not recognize itself as the lock owner"
+
+  # An unrelated bun script must never be misread as omp.
+  cat > "$fakebin/ps" <<'SH'
+#!/usr/bin/env bash
+set -u
+field= pid=
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -o) field=$2; shift 2 ;;
+    -p) pid=$2; shift 2 ;;
+    *) shift ;;
+  esac
+done
+case "$pid:$field" in
+  600:comm=) printf '%s\n' bun ;;
+  600:args=) printf '%s\n' 'bun /Users/u/.bun/bin/some-other-tool' ;;
+  600:ppid=) printf '%s\n' 1 ;;
+  *:comm=) printf '%s\n' bash ;;
+  *:args=) printf '%s\n' 'bash tests/run.sh' ;;
+  *:ppid=) printf '%s\n' 600 ;;
+esac
+SH
+  chmod +x "$fakebin/ps"
+  if lib_eval "$fakebin" 'fm_harness_ancestry_pid'; then
+    fail "an unrelated bun script must not be misread as a bun-shebang omp install"
+  fi
+  pass "session-lock: a bun-shebang omp install is identified by its script path, not an unrelated bun process"
+}
+
 test_competing_version_named_session_is_seen_as_live() {
   local dir fakebin
   dir="$TMP_ROOT/competing"
@@ -1568,6 +1635,7 @@ test_version_named_session_is_identified_on_both_platforms
 test_harness_at_namespace_pid1_is_examined
 test_ordinary_paths_are_never_harness_processes
 test_harness_beyond_a_gap_never_owns_the_lock
+test_bun_shebang_omp_is_identified_by_its_script_path
 test_competing_version_named_session_is_seen_as_live
 test_same_session_id_owns_a_recycled_background_chain
 test_anchor_pid_is_the_model_loop_process_only_for_a_trusted_id
