@@ -1,0 +1,17 @@
+== pin: aux
+$ bin/fm-spawn.sh sm2 <home> omp --secondmate
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: $LAB/config/secondmate-accounts/sm2/omp-profile must hold one omp profile name on a single line, matching ^[a-z0-9][a-z0-9._-]{0,63}$, not ending in '.', and not a Windows reserved device name (con, prn, aux, nul, com0-9, lpt0-9, alone or with an extension), with no other lines or control characters
+BAD_RC=1
+== state files for sm2:
+(none)
+== lab windows:
+bash
+fm-sm

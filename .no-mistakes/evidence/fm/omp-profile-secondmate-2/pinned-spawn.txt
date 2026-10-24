@@ -1,0 +1,64 @@
+== spawn output
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab.lHvouB
+warning: secondmate sm sync skipped before launch: primary default-branch commit cannot be resolved
+spawned sm harness=omp kind=secondmate mode=secondmate yolo=off window=primary:fm-sm worktree=/private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab-sm.OaPoCl omp_profile=fmlab4
+== task record state/sm.meta
+window=primary:fm-sm
+endpoint_task_id=sm
+worktree=/private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab-sm.OaPoCl
+project=/private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab-sm.OaPoCl
+harness=omp
+kind=secondmate
+mode=secondmate
+yolo=off
+tasktmp=/tmp/fm-sm
+model=default
+effort=default
+omp_profile=fmlab4
+busy_gen=g1792885750.31988.12334
+spawn_gen=s1792885750.31554.11773
+home=/private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab-sm.OaPoCl
+projects=
+== lab tmux windows
+primary:bash pid=28597 cmd=bash
+primary:fm-sm pid=31973 cmd=bun
+== live omp process (pane pid 31973 and descendants)
+  PID  PPID COMMAND
+31973 28596 -zsh
+32802 31973 bun /Users/craig/.bun/bin/omp --profile fmlab4 --config /Users/craig/.no-mistakes/worktrees/5294d2e8c5bb/01M5QZ1V50G3Z4EQDNE1HN6J4X/.omp/fm-worker-overlay.yml --auto-approve --cwd /private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab-sm.OaPoCl -e /private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab.lHvouB/state/sm.omp-ext.ts M-bM^AM-#FIRSTMATE_OP: v1 launch-brief: charter
+32802 bun /Users/craig/.bun/bin/omp --profile fmlab4 --config /Users/craig/.no-mistakes/worktrees/5294d2e8c5bb/01M5QZ1V50G3Z4EQDNE1HN6J4X/.omp/fm-worker-overlay.yml --auto-approve --cwd /private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab-sm.OaPoCl -e /private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab.lHvouB/state/sm.omp-ext.ts M-bM^AM-#FIRSTMATE_OP: v1 launch-brief: charter
+38341 /bin/zsh -c source /Users/craig/.claude/shell-snapshots/snapshot-zsh-1792885544658-58w976.sh 2>/dev/null || true && setopt NO_EXTENDED_GLOB NO_BARE_GLOB_QUAL 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'LAB=$(cat /tmp/fmlab-path); E=/Users/craig/.no-mistakes/evidence/01M5QZ1V50G3Z4EQDNE1HN6J4X\012T() { TMUX_TMPDIR=$LAB/tmux tmux -L fm-lab "$@"; }\012{ echo "== spawn output"; cat $LAB/spawn.out; echo "== task record state/sm.meta"; cat $LAB/state/sm.meta; echo "== lab tmux windows"; T list-windows -a -F '"'"'#{session_name}:#{window_name} pid=#{pane_pid} cmd=#{pane_current_command}'"'"'; } > $E/pinned-spawn.
+== isolated profile dir created by the live omp
+$LAB/ohome/.omp
+$LAB/ohome/.omp/profiles
+$LAB/ohome/.omp/profiles/fmlab4
+$LAB/ohome/.omp/profiles/fmlab4/cache
+$LAB/ohome/.omp/profiles/fmlab4/agent
+$LAB/ohome/.omp/profiles/fmlab4/logs
+$LAB/ohome/.omp/profiles/fmlab4/run
+== secondmate pane
+│ deepseek-coder-v2:latest │                                                                       │
+│          ollama          │                                                                       │
+│                          │ ───────────────────────────────────────────────────────────────────── │
+│                          │ Recent sessions                                                       │
+│                          │ No recent sessions                                                    │
+│                          │                                                                       │
+│                          │                                                                       │
+│                          │                                                                       │
+│                          │                                                                       │
+╰──────────────────────────┴───────────────────────────────────────────────────────────────────────╯
+ Tip: Drop the word `ultrathink` in your message for harder multi-step reasoning — watch it glow
+      rainbow as you type
+ ⁣FIRSTMATE_OP: v1 launch-brief: charter
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Update Available
+ New version 18.12.6 is available. Run: omp update
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ✘ 400 registry.ollama.ai/library/deepseek-coder-v2:latest does not support tools
+   registry.ollama.ai/library/deepseek-coder-v2:latest does not support tools (type=invalid_request_error)
+   raw-http-request=/private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab.lHvouB/ohome/.omp/profiles/fmlab4/logs/http-400-requests/1792885754286-353iqod5p5vz6.json
+ Dismissed when you send your next message.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+ π · ⬢ deepseek-coder-v2:latest · 🗑 fm-lab-sm.OaPoCl · ⑂ main ?3 · ◫ 3.9%/164K ⟲

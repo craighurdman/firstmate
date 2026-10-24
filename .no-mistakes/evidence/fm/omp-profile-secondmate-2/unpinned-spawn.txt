@@ -1,0 +1,12 @@
+== no pin file for sm2
+$ bin/fm-spawn.sh sm2 <home> omp --secondmate
+spawned sm2 harness=omp kind=secondmate mode=secondmate yolo=off window=primary:fm-sm2 worktree=/private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab-sm2.dMygsa
+UNP_RC=0
+== task record omp_profile lines:
+0
+== live omp process for sm2:
+61344 60317 bun /Users/craig/.bun/bin/omp --config /Users/craig/.no-mistakes/worktrees/5294d2e8c5bb/01M5QZ1V50G3Z4EQDNE1HN6J4X/.omp/fm-worker-overlay.yml --auto-approve --cwd /private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab-sm2.dMygsa -e /private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab.lHvouB/state/sm2.omp-ext.ts M-bM^AM-#FIRSTMATE_OP: v1 launch-brief: charter
+== profiles dir under lab HOME (only sm's fmlab4 exists):
+fmlab4
+== default (ambient) agent dir:
+/private/var/folders/cl/4fbxfdf906vbhrb4drljpbk40000gn/T/fm-lab.lHvouB/ohome/.omp/agent

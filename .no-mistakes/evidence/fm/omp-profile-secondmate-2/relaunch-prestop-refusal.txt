@@ -1,0 +1,9 @@
+== pin file: nul.x
+== live omp pid before: 32802
+$ bin/fm-control.sh sm relaunch --harness omp
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $LAB
+error: $LAB/config/secondmate-accounts/sm/omp-profile must hold one omp profile name on a single line, matching ^[a-z0-9][a-z0-9._-]{0,63}$, not ending in '.', and not a Windows reserved device name (con, prn, aux, nul, com0-9, lpt0-9, alone or with an extension), with no other lines or control characters
+exit=1
+== omp still running after refusal:
+  PID COMMAND
+32802 bun /Users/craig/.bun/bin/omp --profile fmlab4 --config /Users/craig/.no-mistakes/worktrees/5294d2e8c5bb/01M5QZ1V5
